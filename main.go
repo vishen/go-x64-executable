@@ -9,18 +9,10 @@ import (
 )
 
 const (
-	virtualStartAddress uint64 = 0x400000
-	alignment           uint64 = 0x200000
+	virtualStartAddress     uint64 = 0x400000
+	dataVirtualStartAddress uint64 = 0x600000
+	alignment               uint64 = 0x200000
 )
-
-// Round value up to alignment
-func alignTo(value, alignment uint64) uint64 {
-	remainder := value % alignment
-	if remainder == 0 {
-		return value
-	}
-	return value + (alignment - remainder)
-}
 
 type Builder struct {
 	o []byte
@@ -44,8 +36,7 @@ func (b *Builder) WriteValue(size int, value uint64) {
 func buildELF(textSection, dataSection []byte) []byte {
 	textSize := uint64(len(textSection))
 	// Size of ELF header + 2 * size program header?
-	textOffset := alignTo(0x40+2*0x38, alignment)
-	textOffset = 0x40 + (2 * 0x38)
+	textOffset := uint64(0x40 + (2 * 0x38))
 
 	var o Builder
 
@@ -90,9 +81,8 @@ func buildELF(textSection, dataSection []byte) []byte {
 	o.WriteValue(8, alignment)
 
 	dataSize := uint64(len(dataSection))
-	dataOffset := alignTo(textOffset+dataSize, alignment)
-	dataOffset = textOffset + textSize
-	dataVirtualAddress := virtualStartAddress + alignment + dataOffset
+	dataOffset := uint64(textOffset + textSize)
+	dataVirtualAddress := dataVirtualStartAddress + dataOffset
 
 	// Build Program Header
 	// Data Segment
@@ -103,7 +93,6 @@ func buildELF(textSection, dataSection []byte) []byte {
 	o.WriteValue(8, dataVirtualAddress)  // Physical address.
 	o.WriteValue(8, dataSize)            // Number of bytes in file image.
 	o.WriteValue(8, dataSize)            // Number of bytes in memory image.
-
 	o.WriteValue(8, alignment)
 
 	// Output the text segment
@@ -114,6 +103,7 @@ func buildELF(textSection, dataSection []byte) []byte {
 }
 
 func main() {
+	// https://defuse.ca/online-x86-assembler.htm#disassembly
 	textSection := []byte{
 		// Sys write
 		0x48, 0xC7, 0xC0, 0x04, 0x00, 0x00, 0x00, // mov rax, 0x04
