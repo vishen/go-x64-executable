@@ -96,7 +96,7 @@ func buildELF(textSection, dataSection []byte) []byte {
 }
 
 func main() {
-	word := "Hello World, my name is jonathan\n"
+	word := "Hello World, this is my tiny executable"
 
 	// data section with word in it
 	dataSection := []byte(word)
