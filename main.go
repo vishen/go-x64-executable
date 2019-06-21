@@ -2,8 +2,6 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"log"
 )
@@ -18,10 +16,6 @@ type Builder struct {
 	o []byte
 }
 
-func (b *Builder) Len() int {
-	return len(b.o)
-}
-
 func (b *Builder) WriteBytes(bs ...byte) {
 	b.o = append(b.o, bs...)
 }
@@ -29,7 +23,6 @@ func (b *Builder) WriteBytes(bs ...byte) {
 func (b *Builder) WriteValue(size int, value uint64) {
 	buf := make([]byte, size)
 	binary.LittleEndian.PutUint64(buf, value)
-	log.Printf("%d of %d bytes == %v\n", value, size, buf)
 	b.WriteBytes(buf...)
 }
 
@@ -103,12 +96,18 @@ func buildELF(textSection, dataSection []byte) []byte {
 }
 
 func main() {
+	word := "Hello World, my name is jonathan\n"
+
+	// data section with word in it
+	dataSection := []byte(word)
+	lenWord := byte(len(word)) // TODO: Length must be able to fit into a single byte at the moment.
+
 	// https://defuse.ca/online-x86-assembler.htm#disassembly
 	textSection := []byte{
 		// Sys write
 		0x48, 0xC7, 0xC0, 0x04, 0x00, 0x00, 0x00, // mov rax, 0x04
 		0x48, 0xC7, 0xC3, 0x01, 0x00, 0x00, 0x00, // mov rbx, 0x01
-		0x48, 0xC7, 0xC2, 0x0C, 0x00, 0x00, 0x00, // mov rdx, 0xc
+		0x48, 0xC7, 0xC2, lenWord, 0x00, 0x00, 0x00, // mov rdx, <lenWord>
 
 		0x48, 0xC7, 0xC1, 0xDA, 0x00, 0x60, 0x00, // mov rdx, 0x6000da (HARD CODED at the moment)
 
@@ -120,12 +119,7 @@ func main() {
 		0xcd, 0x80, // int 0x80
 	}
 
-	// "Hello World" data section
-	dataSection := []byte{0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 0x0a}
-
 	data := buildELF(textSection, dataSection)
-	fmt.Println(len(data))
-	fmt.Println(hex.EncodeToString(data))
 	if err := ioutil.WriteFile("./comp", data, 0755); err != nil {
 		log.Fatal(err)
 	}
