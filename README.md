@@ -8,6 +8,12 @@ It will generate the ELF header, then 2 Program Headers, one
 for the `.text` segment and one for the `.data` segment. Then the 
 `.text` segment and `.data` segment are outputted to the binary.
 
+The `.text` segment will do a `sys_write` using the data offset
+from where the `.data` segment is located and then it will do
+a `sys_exit`.
+
+The `.data` segment contains just the string data.
+
 Currently the string and filename are hardcoded in main.go.
 
 This doesn't currently do back-patching. The data segment is
