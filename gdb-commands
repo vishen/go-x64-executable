@@ -1,0 +1,7 @@
+file comp
+info file
+set disassembly-flavor intel
+b *0x4000b0
+run
+layout asm
+layout regs
