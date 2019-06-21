@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/binary"
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 )
@@ -95,19 +97,24 @@ func buildELF(textSection, dataSection []byte) []byte {
 	return o.o
 }
 
+var (
+	outputBinaryName = flag.String("output", "tiny-x64", "output binary executable name")
+	wordToOutput     = flag.String("word", "Hello World, this is my tiny executable", "word to output in binary sys_write")
+)
+
 func main() {
-	word := "Hello World, this is my tiny executable"
+	flag.Parse()
 
 	// data section with word in it
-	dataSection := []byte(word)
-	lenWord := byte(len(word)) // TODO: Length must be able to fit into a single byte at the moment.
+	dataSection := []byte(*wordToOutput)
+	wordLen := byte(len(*wordToOutput)) // TODO: Length must be able to fit into a single byte at the moment.
 
 	// https://defuse.ca/online-x86-assembler.htm#disassembly
 	textSection := []byte{
 		// Sys write
 		0x48, 0xC7, 0xC0, 0x04, 0x00, 0x00, 0x00, // mov rax, 0x04
 		0x48, 0xC7, 0xC3, 0x01, 0x00, 0x00, 0x00, // mov rbx, 0x01
-		0x48, 0xC7, 0xC2, lenWord, 0x00, 0x00, 0x00, // mov rdx, <lenWord>
+		0x48, 0xC7, 0xC2, wordLen, 0x00, 0x00, 0x00, // mov rdx, <wordLen>
 
 		0x48, 0xC7, 0xC1, 0xDA, 0x00, 0x60, 0x00, // mov rdx, 0x6000da (HARD CODED at the moment)
 
@@ -120,7 +127,8 @@ func main() {
 	}
 
 	data := buildELF(textSection, dataSection)
-	if err := ioutil.WriteFile("./comp", data, 0755); err != nil {
+	if err := ioutil.WriteFile(*outputBinaryName, data, 0755); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("wrote binary to %s\n", *outputBinaryName)
 }
